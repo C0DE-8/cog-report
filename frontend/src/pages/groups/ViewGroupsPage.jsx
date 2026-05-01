@@ -50,10 +50,7 @@ function ViewGroupsPage() {
         <div className={styles.headerRow}>
           <div>
             <p className={styles.kicker}>View Groups</p>
-            <h2 className={styles.heading}>Browse by assigned group</h2>
-            <p className={styles.copy}>
-              Filter by group and publisher name to find assignments faster.
-            </p>
+          
           </div>
 
           <div className={styles.filterControls}>

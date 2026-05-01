@@ -60,6 +60,13 @@
   color: #dce4f1;
 }
 
+.checkboxRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #dce4f1;
+}
+
 .input {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 16px;
@@ -133,6 +140,10 @@
   text-align: center;
   color: #97a8c1;
   padding: 24px 10px;
+}
+
+.historySection {
+  margin-top: 24px;
 }
 
 @media (max-width: 1080px) {

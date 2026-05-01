@@ -41,6 +41,16 @@ function sendValidationError(req, res, message, details = {}) {
   });
 }
 
+function parseNonNegativeNumber(value) {
+  const parsed = Number(value || 0);
+
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
 async function getStatusRecord(connection, { statusId, status }) {
   if (statusId) {
     const [rows] = await connection.query(
@@ -61,6 +71,19 @@ async function getStatusRecord(connection, { statusId, status }) {
   }
 
   return null;
+}
+
+async function getMonthlyReportById(reportId) {
+  const [rows] = await pool.query(
+    `SELECT id, user_id AS userId, report_month AS month, is_present AS isPresent,
+      hours, bible_studies AS bibleStudies
+    FROM monthly_reports
+    WHERE id = ?
+    LIMIT 1`,
+    [reportId]
+  );
+
+  return rows[0] || null;
 }
 
 router.post("/groups", async (req, res) => {
@@ -234,6 +257,7 @@ router.get("/users", async (req, res) => {
         g.overseer AS groupOverseer,
         mr.id AS reportId,
         mr.report_month AS month,
+        mr.is_present AS isPresent,
         mr.hours,
         mr.bible_studies AS bibleStudies
       FROM report_users ru
@@ -307,7 +331,7 @@ router.put("/users/:id", async (req, res) => {
 router.post("/users/:id/reports", async (req, res) => {
   try {
     const { id } = req.params;
-    const { month, hours, bibleStudies } = req.body;
+    const { month, hours, bibleStudies, isPresent } = req.body;
 
     if (!month) {
       return sendValidationError(req, res, "Month is required", {
@@ -325,14 +349,14 @@ router.post("/users/:id/reports", async (req, res) => {
       });
     }
 
-    const parsedHours = Number(hours || 0);
-    const parsedBibleStudies = Number(bibleStudies || 0);
+    const parsedHours = parseNonNegativeNumber(hours);
+    const parsedBibleStudies = parseNonNegativeNumber(bibleStudies);
 
-    if (Number.isNaN(parsedHours) || Number.isNaN(parsedBibleStudies)) {
+    if (parsedHours === null || parsedBibleStudies === null) {
       return sendValidationError(
         req,
         res,
-        "Hours and bible studies must be numbers",
+        "Hours and bible studies must be non-negative numbers",
         {
           userId: id,
           receivedHours: hours ?? null,
@@ -350,25 +374,70 @@ router.post("/users/:id/reports", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const [result] = await pool.query(
-      `INSERT INTO monthly_reports (user_id, report_month, hours, bible_studies)
-      VALUES (?, ?, ?, ?)
+    const shouldMarkPresent = Boolean(isPresent);
+    const hasEntryValues = parsedHours > 0 || parsedBibleStudies > 0;
+
+    if (!shouldMarkPresent && !hasEntryValues) {
+      return sendValidationError(
+        req,
+        res,
+        "Mark the publisher as present or add hours or bible studies",
+        {
+          userId: id,
+          month
+        }
+      );
+    }
+
+    await pool.query(
+      `INSERT INTO monthly_reports
+      (user_id, report_month, is_present, hours, bible_studies)
+      VALUES (?, ?, ?, 0, 0)
       ON DUPLICATE KEY UPDATE
-        hours = VALUES(hours),
-        bible_studies = VALUES(bible_studies),
+        is_present = GREATEST(is_present, VALUES(is_present)),
         updated_at = CURRENT_TIMESTAMP`,
-      [id, month, parsedHours, parsedBibleStudies]
+      [id, month, shouldMarkPresent ? 1 : 0]
     );
+
+    const [reports] = await pool.query(
+      "SELECT id FROM monthly_reports WHERE user_id = ? AND report_month = ? LIMIT 1",
+      [id, month]
+    );
+
+    const reportId = reports[0].id;
+    let entry = null;
+
+    if (hasEntryValues) {
+      const [entryResult] = await pool.query(
+        `INSERT INTO monthly_report_entries
+        (monthly_report_id, hours, bible_studies)
+        VALUES (?, ?, ?)`,
+        [reportId, parsedHours, parsedBibleStudies]
+      );
+
+      await pool.query(
+        `UPDATE monthly_reports
+        SET
+          hours = hours + ?,
+          bible_studies = bible_studies + ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [parsedHours, parsedBibleStudies, reportId]
+      );
+
+      entry = {
+        id: entryResult.insertId,
+        hours: parsedHours,
+        bibleStudies: parsedBibleStudies
+      };
+    }
+
+    const report = await getMonthlyReportById(reportId);
 
     return res.status(201).json({
       message: "Report saved successfully",
-      report: {
-        id: result.insertId || null,
-        userId: Number(id),
-        month,
-        hours: parsedHours,
-        bibleStudies: parsedBibleStudies
-      }
+      report,
+      entry
     });
   } catch (error) {
     logControllerError(req, error, "create report");
@@ -379,7 +448,7 @@ router.post("/users/:id/reports", async (req, res) => {
 router.put("/reports/:reportId", async (req, res) => {
   try {
     const { reportId } = req.params;
-    const { month, hours, bibleStudies } = req.body;
+    const { month, isPresent } = req.body;
 
     if (!month) {
       return sendValidationError(req, res, "Month is required", {
@@ -397,27 +466,11 @@ router.put("/reports/:reportId", async (req, res) => {
       });
     }
 
-    const parsedHours = Number(hours || 0);
-    const parsedBibleStudies = Number(bibleStudies || 0);
-
-    if (Number.isNaN(parsedHours) || Number.isNaN(parsedBibleStudies)) {
-      return sendValidationError(
-        req,
-        res,
-        "Hours and bible studies must be numbers",
-        {
-          reportId,
-          receivedHours: hours ?? null,
-          receivedBibleStudies: bibleStudies ?? null
-        }
-      );
-    }
-
     const [result] = await pool.query(
       `UPDATE monthly_reports
-      SET report_month = ?, hours = ?, bible_studies = ?
+      SET report_month = ?, is_present = ?
       WHERE id = ?`,
-      [month, parsedHours, parsedBibleStudies, reportId]
+      [month, isPresent ? 1 : 0, reportId]
     );
 
     if (result.affectedRows === 0) {
@@ -428,6 +481,103 @@ router.put("/reports/:reportId", async (req, res) => {
   } catch (error) {
     logControllerError(req, error, "update report");
     return res.status(500).json({ message: "Failed to update report" });
+  }
+});
+
+router.get("/reports/:reportId/entries", async (req, res) => {
+  try {
+    const report = await getMonthlyReportById(req.params.reportId);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    const [entries] = await pool.query(
+      `SELECT
+        id,
+        hours,
+        bible_studies AS bibleStudies,
+        created_at AS createdAt
+      FROM monthly_report_entries
+      WHERE monthly_report_id = ?
+      ORDER BY created_at DESC, id DESC`,
+      [req.params.reportId]
+    );
+
+    return res.status(200).json({
+      report,
+      entries
+    });
+  } catch (error) {
+    logControllerError(req, error, "fetch report entries");
+    return res.status(500).json({ message: "Failed to fetch report history" });
+  }
+});
+
+router.post("/reports/:reportId/entries", async (req, res) => {
+  try {
+    const report = await getMonthlyReportById(req.params.reportId);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    const parsedHours = parseNonNegativeNumber(req.body.hours);
+    const parsedBibleStudies = parseNonNegativeNumber(req.body.bibleStudies);
+
+    if (parsedHours === null || parsedBibleStudies === null) {
+      return sendValidationError(
+        req,
+        res,
+        "Hours and bible studies must be non-negative numbers",
+        {
+          reportId: req.params.reportId,
+          receivedHours: req.body.hours ?? null,
+          receivedBibleStudies: req.body.bibleStudies ?? null
+        }
+      );
+    }
+
+    if (parsedHours === 0 && parsedBibleStudies === 0) {
+      return sendValidationError(
+        req,
+        res,
+        "Add at least hours or bible studies to create a history entry",
+        {
+          reportId: req.params.reportId
+        }
+      );
+    }
+
+    const [entryResult] = await pool.query(
+      `INSERT INTO monthly_report_entries
+      (monthly_report_id, hours, bible_studies)
+      VALUES (?, ?, ?)`,
+      [req.params.reportId, parsedHours, parsedBibleStudies]
+    );
+
+    await pool.query(
+      `UPDATE monthly_reports
+      SET
+        hours = hours + ?,
+        bible_studies = bible_studies + ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+      [parsedHours, parsedBibleStudies, req.params.reportId]
+    );
+
+    return res.status(201).json({
+      message: "Activity entry added successfully",
+      entry: {
+        id: entryResult.insertId,
+        reportId: Number(req.params.reportId),
+        hours: parsedHours,
+        bibleStudies: parsedBibleStudies
+      }
+    });
+  } catch (error) {
+    logControllerError(req, error, "add report entry");
+    return res.status(500).json({ message: "Failed to add report entry" });
   }
 });
 

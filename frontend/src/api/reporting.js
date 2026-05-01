@@ -36,6 +36,14 @@ export function updateUserReport(reportId, payload) {
   return apiClient.put(`/reporting/reports/${reportId}`, payload);
 }
 
+export function getReportEntries(reportId) {
+  return apiClient.get(`/reporting/reports/${reportId}/entries`);
+}
+
+export function createReportEntry(reportId, payload) {
+  return apiClient.post(`/reporting/reports/${reportId}/entries`, payload);
+}
+
 export function deleteReportingUser(id) {
   return apiClient.delete(`/reporting/users/${id}`);
 }
