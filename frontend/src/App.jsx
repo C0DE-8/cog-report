@@ -28,7 +28,7 @@ function App() {
         <Route path="/groups/assign" element={<AssignPublishersPage />} />
         <Route path="/groups/manage" element={<ManageGroupsPage />} />
         <Route path="/groups/manage-publishers" element={<ManagePublishersPage />} />
-        <Route path="/groups/reports" element={<AddReportPage />} />
+        <Route path="/reports" element={<AddReportPage />} />
         <Route path="/groups/view" element={<ViewGroupsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>

@@ -1,23 +1,28 @@
-import { memo } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { memo, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import styles from "./AppLayout.module.css";
 
-const navigationItems = [
+const primaryNavigationItems = [
   { to: "/dashboard", label: "Overview" },
-  { type: "label", label: "Groups" },
+  { to: "/reports", label: "Add Report" }
+];
+
+const groupNavigationItems = [
   { to: "/groups/create", label: "Create Group" },
   { to: "/groups/view", label: "View Groups" },
   { to: "/groups/manage", label: "Manage Groups" },
   { to: "/groups/manage-publishers", label: "Manage Publishers" },
-  { to: "/groups/assign", label: "Assign Publishers" },
-  { to: "/groups/reports", label: "Add Report" },
-  { to: "/profile", label: "Profile" }
+  { to: "/groups/assign", label: "Assign Publishers" }
 ];
+
 
 function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isGroupRoute = location.pathname.startsWith("/groups");
+  const [isGroupsOpen, setIsGroupsOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -30,30 +35,74 @@ function AppLayout() {
         <div className={styles.sidebarInner}>
           <div className={styles.brand}>
             <p className={styles.eyebrow}>Cog Report</p>
-            <h1 className={styles.title}>Field service dashboard</h1>
-            <p className={styles.copy}>
-              Track groups, publishers, and monthly activity in one place.
-            </p>
+            <h1 className={styles.title}>Field service </h1>
           </div>
 
           <nav className={styles.nav}>
-            {navigationItems.map((item) =>
-              item.type === "label" ? (
-                <div key={item.label} className={styles.menuLabel}>
-                  {item.label}
-                </div>
-              ) : (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    isActive ? `${styles.link} ${styles.linkActive}` : styles.link
+            {primaryNavigationItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  isActive ? `${styles.link} ${styles.linkActive}` : styles.link
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+
+            <div className={styles.menuGroup}>
+              <button
+                type="button"
+                className={
+                  isGroupRoute || isGroupsOpen
+                    ? `${styles.accordionToggle} ${styles.accordionToggleActive}`
+                    : styles.accordionToggle
+                }
+                onClick={() => setIsGroupsOpen((current) => !current)}
+                aria-expanded={isGroupsOpen}
+                aria-controls="groups-navigation"
+              >
+                <span>Groups</span>
+                <span
+                  className={
+                    isGroupsOpen ? `${styles.chevron} ${styles.chevronOpen}` : styles.chevron
                   }
                 >
-                  {item.label}
-                </NavLink>
-              )
-            )}
+                  ▾
+                </span>
+              </button>
+
+              <div
+                id="groups-navigation"
+                className={
+                  isGroupsOpen
+                    ? `${styles.subnav} ${styles.subnavOpen}`
+                    : styles.subnav
+                }
+              >
+                {groupNavigationItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      isActive ? `${styles.subLink} ${styles.subLinkActive}` : styles.subLink
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+
+            <NavLink
+              to="/profile"
+              className={({ isActive }) =>
+                isActive ? `${styles.link} ${styles.linkActive}` : styles.link
+              }
+            >
+              Profile
+            </NavLink>
           </nav>
 
           <div className={styles.footer}>
