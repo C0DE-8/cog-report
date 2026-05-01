@@ -22,6 +22,12 @@
   backdrop-filter: blur(16px);
 }
 
+.headerStack {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
 .kicker {
   margin: 0 0 8px;
   color: #8fc5ff;
@@ -46,6 +52,12 @@
   border-radius: 16px;
   background: rgba(243, 151, 77, 0.14);
   color: #ffe6c4;
+}
+
+.filterPanel {
+  display: grid;
+  gap: 12px;
+  max-width: 360px;
 }
 
 .form {
@@ -84,6 +96,15 @@
   cursor: pointer;
 }
 
+.secondaryButton {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #dce4f1;
+  cursor: pointer;
+}
+
 .headerRow {
   display: flex;
   justify-content: space-between;
@@ -92,14 +113,283 @@
   margin-bottom: 16px;
 }
 
+.tabsRow,
+.tabsShell {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 20px;
+}
+
+.tab,
+.tabActive {
+  min-width: 180px;
+  border-radius: 20px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.tab {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #dce4f1;
+}
+
+.tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(143, 197, 255, 0.28);
+}
+
+.tabActive {
+  border: 1px solid rgba(143, 197, 255, 0.48);
+  background: linear-gradient(135deg, rgba(77, 145, 243, 0.28), rgba(46, 98, 222, 0.16));
+  color: #f8fbff;
+  box-shadow: 0 12px 28px rgba(20, 70, 180, 0.18);
+}
+
+.tabMeta {
+  color: #98acc9;
+  font-size: 0.88rem;
+}
+
+.tabSkeleton {
+  min-width: 180px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.04)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
 .filterControls {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(180px, 220px);
   gap: 12px;
 }
 
+.matrixToolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+}
+
+.yearNav {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.yearBadge {
+  min-width: 92px;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(143, 197, 255, 0.14);
+  color: #f8fbff;
+  font-weight: 700;
+}
+
+.matrixSummary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.summaryCard {
+  border-radius: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 8px;
+}
+
+.summaryLabel {
+  color: #98acc9;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.matrixWrap {
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.matrixTable {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.matrixTable th,
+.matrixTable td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0;
+  vertical-align: top;
+}
+
+.matrixTable th {
+  padding: 14px 10px;
+  background: rgba(10, 13, 20, 0.94);
+  color: #98acc9;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.stickyColumn {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: rgba(10, 13, 20, 0.96);
+  min-width: 220px;
+}
+
+.publisherCell {
+  padding: 16px;
+  display: grid;
+  gap: 6px;
+}
+
+.publisherCell span {
+  color: #98acc9;
+  font-size: 0.92rem;
+}
+
+.matrixCell,
+.matrixCellActive {
+  width: 100%;
+  min-height: 112px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+  transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.matrixCell {
+  background: transparent;
+  color: #dce4f1;
+}
+
+.matrixCell:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-1px);
+}
+
+.matrixCellActive {
+  background: linear-gradient(135deg, rgba(77, 145, 243, 0.24), rgba(46, 98, 222, 0.14));
+  color: #f8fbff;
+  box-shadow: inset 0 0 0 1px rgba(143, 197, 255, 0.46);
+}
+
+.matrixCellTop {
+  font-size: 0.84rem;
+  color: #98acc9;
+}
+
+.matrixMetric {
+  font-size: 0.92rem;
+}
+
+.matrixSkeleton {
+  display: block;
+  width: calc(100% - 24px);
+  height: 88px;
+  margin: 12px;
+  border-radius: 18px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.05)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.cellInspector {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.panelHeader h3 {
+  margin: 0;
+}
+
 .tableWrap {
   overflow-x: auto;
+}
+
+.contentReady,
+.contentLoading {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.contentReady {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.contentLoading {
+  opacity: 0.7;
+  transform: translateY(4px);
+}
+
+.groupSummary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.sectionCopy {
+  margin: 8px 0 0;
+  color: #aebbd0;
+}
+
+.groupMetric {
+  margin: 0;
+  color: #8fc5ff;
+  font-weight: 600;
 }
 
 .table {
@@ -142,8 +432,55 @@
   padding: 24px 10px;
 }
 
+.emptyState,
+.loadingCell {
+  color: #97a8c1;
+}
+
+.loadingCell {
+  padding: 20px 10px;
+}
+
+.skeletonRow {
+  display: grid;
+  gap: 10px;
+}
+
+.skeletonBlock,
+.skeletonBlockShort {
+  display: block;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.05)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.skeletonBlock {
+  width: 100%;
+}
+
+.skeletonBlockShort {
+  width: 42%;
+}
+
 .historySection {
   margin-top: 24px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @media (max-width: 1080px) {
@@ -158,5 +495,21 @@
 
   .filterControls {
     grid-template-columns: 1fr;
+  }
+
+  .groupSummary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .matrixToolbar,
+  .yearNav,
+  .panelHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .matrixSummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

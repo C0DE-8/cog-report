@@ -1,61 +1,108 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createReportEntry,
   createUserReport,
   getGroups,
   getReportEntries,
-  getReportingUsers,
+  getReportMatrix,
   updateUserReport
 } from "../../api/reporting";
 import styles from "./GroupsPage.module.css";
 
-const initialMonthlyForm = {
-  userId: "",
-  reportId: null,
-  month: "",
-  isPresent: false
-};
-
 const initialEntryForm = {
-  reportId: null,
   hours: "",
   bibleStudies: ""
 };
 
+function getCurrentMonthValue() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function formatMonthLabel(month) {
+  const [year, monthNumber] = month.split("-");
+  const date = new Date(Number(year), Number(monthNumber) - 1, 1);
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric"
+  });
+}
+
 function AddReportPage() {
   const [groups, setGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthValue);
   const [users, setUsers] = useState([]);
-  const [selectedGroupId, setSelectedGroupId] = useState("all");
-  const [monthlyForm, setMonthlyForm] = useState(initialMonthlyForm);
-  const [entryForm, setEntryForm] = useState(initialEntryForm);
+  const [reports, setReports] = useState([]);
+  const [selectedCell, setSelectedCell] = useState(null);
   const [history, setHistory] = useState([]);
+  const [entryForm, setEntryForm] = useState(initialEntryForm);
   const [message, setMessage] = useState("");
-
-  const loadData = async () => {
-    try {
-      const [groupsResponse, usersResponse] = await Promise.all([
-        getGroups(),
-        getReportingUsers()
-      ]);
-
-      setGroups(groupsResponse.data.groups);
-      setUsers(usersResponse.data.users);
-    } catch (error) {
-      setMessage("Failed to load reporting data");
-    }
-  };
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+  const [isLoadingMatrix, setIsLoadingMatrix] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
-    loadData();
+    let isActive = true;
+
+    async function loadGroups() {
+      setIsLoadingGroups(true);
+      setMessage("");
+
+      try {
+        const response = await getGroups();
+
+        if (!isActive) {
+          return;
+        }
+
+        const nextGroups = response.data.groups || [];
+        setGroups(nextGroups);
+        setSelectedGroupId(nextGroups[0] ? String(nextGroups[0].id) : "");
+      } catch (error) {
+        if (isActive) {
+          setMessage(error.response?.data?.message || "Failed to load groups");
+          setGroups([]);
+          setSelectedGroupId("");
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingGroups(false);
+        }
+      }
+    }
+
+    loadGroups();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
-  const filteredUsers =
-    selectedGroupId === "all"
-      ? users
-      : users.filter((user) => String(user.groupId) === selectedGroupId);
+  const reportMap = useMemo(() => {
+    const nextMap = new Map();
 
-  const reportableUsers = filteredUsers.filter(
-    (user, index, array) => array.findIndex((entry) => entry.id === user.id) === index
+    reports.forEach((report) => {
+      nextMap.set(`${report.userId}-${report.month}`, report);
+    });
+
+    return nextMap;
+  }, [reports]);
+
+  const selectedGroup = useMemo(
+    () => groups.find((group) => String(group.id) === selectedGroupId) || null,
+    [groups, selectedGroupId]
+  );
+
+  const matrixRows = useMemo(
+    () =>
+      users.map((user) => ({
+        ...user,
+        month: {
+          value: selectedMonth,
+          report: reportMap.get(`${user.id}-${selectedMonth}`) || null
+        }
+      })),
+    [reportMap, selectedMonth, users]
   );
 
   const loadHistory = async (reportId) => {
@@ -64,115 +111,203 @@ function AddReportPage() {
       return;
     }
 
+    setIsLoadingHistory(true);
+
     try {
       const response = await getReportEntries(reportId);
-      setHistory(response.data.entries);
+      setHistory(response.data.entries || []);
     } catch (error) {
       setHistory([]);
       setMessage(error.response?.data?.message || "Failed to load report history");
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
-  const handleMonthlyChange = (event) => {
-    const { name, value, type, checked } = event.target;
-    setMonthlyForm((current) => ({
-      ...current,
-      [name]: type === "checkbox" ? checked : value
-    }));
+  const syncSelectedCell = (nextUsers, nextReports, baseCell) => {
+    if (!baseCell) {
+      setSelectedCell(null);
+      setHistory([]);
+      return;
+    }
+
+    const nextUser = nextUsers.find((user) => user.id === baseCell.userId);
+    const nextReport =
+      nextReports.find(
+        (report) => report.userId === baseCell.userId && report.month === baseCell.month
+      ) || null;
+
+    if (!nextUser) {
+      setSelectedCell(null);
+      setHistory([]);
+      return;
+    }
+
+    const nextCell = {
+      userId: nextUser.id,
+      userName: nextUser.name,
+      status: nextUser.status,
+      month: baseCell.month,
+      reportId: nextReport?.id || null,
+      hours: nextReport?.hours || 0,
+      bibleStudies: nextReport?.bibleStudies || 0,
+      isPresent: Boolean(nextReport?.isPresent),
+      entryCount: nextReport?.entryCount || 0
+    };
+
+    setSelectedCell(nextCell);
+
+    if (nextCell.reportId) {
+      loadHistory(nextCell.reportId);
+    } else {
+      setHistory([]);
+    }
   };
+
+  const loadMatrix = async (baseCell = selectedCell) => {
+    if (!selectedGroupId) {
+      setUsers([]);
+      setReports([]);
+      setSelectedCell(null);
+      setHistory([]);
+      return;
+    }
+
+    setIsLoadingMatrix(true);
+    setMessage("");
+
+    try {
+      const response = await getReportMatrix({
+        groupId: selectedGroupId,
+        month: selectedMonth
+      });
+
+      const nextUsers = response.data.users || [];
+      const nextReports = response.data.reports || [];
+
+      setUsers(nextUsers);
+      setReports(nextReports);
+      syncSelectedCell(nextUsers, nextReports, baseCell);
+    } catch (error) {
+      setUsers([]);
+      setReports([]);
+      setSelectedCell(null);
+      setHistory([]);
+      setMessage(error.response?.data?.message || "Failed to load reporting matrix");
+    } finally {
+      setIsLoadingMatrix(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMatrix(null);
+  }, [selectedGroupId, selectedMonth]);
+
+  const totals = useMemo(
+    () =>
+      reports.reduce(
+        (summary, report) => ({
+          hours: summary.hours + Number(report.hours || 0),
+          bibleStudies: summary.bibleStudies + Number(report.bibleStudies || 0),
+          activeCells: summary.activeCells + 1
+        }),
+        { hours: 0, bibleStudies: 0, activeCells: 0 }
+      ),
+    [reports]
+  );
 
   const handleEntryChange = (event) => {
     const { name, value } = event.target;
-    setEntryForm((current) => ({ ...current, [name]: value }));
+    setEntryForm((current) => ({
+      ...current,
+      [name]: value
+    }));
   };
 
-  const selectExistingReport = (user) => {
-    setMonthlyForm({
-      userId: String(user.id),
-      reportId: user.reportId,
-      month: user.month || "",
-      isPresent: Boolean(user.isPresent)
-    });
-    setEntryForm({
-      reportId: user.reportId,
-      hours: "",
-      bibleStudies: ""
-    });
-    loadHistory(user.reportId);
-  };
+  const handleCellSelect = (user, month) => {
+    const nextCell = {
+      userId: user.id,
+      userName: user.name,
+      status: user.status,
+      month: month.value,
+      reportId: month.report?.id || null,
+      hours: month.report?.hours || 0,
+      bibleStudies: month.report?.bibleStudies || 0,
+      isPresent: Boolean(month.report?.isPresent),
+      entryCount: month.report?.entryCount || 0
+    };
 
-  const prepareNewMonth = (user) => {
-    setMonthlyForm({
-      userId: String(user.id),
-      reportId: null,
-      month: "",
-      isPresent: false
-    });
+    setSelectedCell(nextCell);
     setEntryForm(initialEntryForm);
-    setHistory([]);
+
+    if (nextCell.reportId) {
+      loadHistory(nextCell.reportId);
+    } else {
+      setHistory([]);
+    }
   };
 
-  const handleMonthlySubmit = async (event) => {
-    event.preventDefault();
+  const handlePresenceSave = async () => {
+    if (!selectedCell) {
+      return;
+    }
 
     try {
       let response;
 
-      if (monthlyForm.reportId) {
-        response = await updateUserReport(monthlyForm.reportId, {
-          month: monthlyForm.month,
-          isPresent: monthlyForm.isPresent
+      if (selectedCell.reportId) {
+        response = await updateUserReport(selectedCell.reportId, {
+          month: selectedCell.month,
+          isPresent: selectedCell.isPresent
         });
       } else {
-        response = await createUserReport(monthlyForm.userId, {
-          month: monthlyForm.month,
-          isPresent: monthlyForm.isPresent,
+        response = await createUserReport(selectedCell.userId, {
+          month: selectedCell.month,
+          isPresent: selectedCell.isPresent,
           hours: 0,
           bibleStudies: 0
         });
       }
 
-      const nextReportId =
-        response.data.report?.id || monthlyForm.reportId || entryForm.reportId;
-
       setMessage(response.data.message);
-      setMonthlyForm((current) => ({
-        ...current,
-        reportId: nextReportId
-      }));
-      setEntryForm((current) => ({
-        ...current,
-        reportId: nextReportId
-      }));
-      await loadData();
-      await loadHistory(nextReportId);
+      await loadMatrix(selectedCell);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to save monthly status");
+      setMessage(error.response?.data?.message || "Failed to save monthly record");
     }
   };
 
   const handleEntrySubmit = async (event) => {
     event.preventDefault();
 
-    try {
-      if (!entryForm.reportId) {
-        setMessage("Create or load a monthly report first");
-        return;
-      }
+    if (!selectedCell) {
+      return;
+    }
 
-      const response = await createReportEntry(entryForm.reportId, {
+    try {
+      let reportId = selectedCell.reportId;
+      const payload = {
         hours: Number(entryForm.hours || 0),
         bibleStudies: Number(entryForm.bibleStudies || 0)
-      });
+      };
 
-      setMessage(response.data.message);
-      setEntryForm((current) => ({
-        ...current,
-        hours: "",
-        bibleStudies: ""
-      }));
-      await loadData();
-      await loadHistory(entryForm.reportId);
+      if (!reportId) {
+        const response = await createUserReport(selectedCell.userId, {
+          month: selectedCell.month,
+          isPresent: selectedCell.isPresent,
+          hours: payload.hours,
+          bibleStudies: payload.bibleStudies
+        });
+
+        reportId = response.data.report?.id || null;
+
+        setMessage(response.data.message);
+      } else {
+        const response = await createReportEntry(reportId, payload);
+        setMessage(response.data.message);
+      }
+
+      setEntryForm(initialEntryForm);
+      await loadMatrix({ ...selectedCell, reportId });
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to add activity entry");
     }
@@ -180,22 +315,27 @@ function AddReportPage() {
 
   return (
     <section className={styles.pageGrid}>
-      <div className={styles.sideStack}>
-        <article className={styles.card}>
-          <p className={styles.kicker}>Monthly Status</p>
-          <h2 className={styles.heading}>Mark attendance for a month</h2>
+      <article className={styles.card}>
+        <div className={styles.headerStack}>
+          <div>
+            <p className={styles.kicker}>Reporting Matrix</p>
+            <h1 className={styles.heading}>Spreadsheet-style monthly activity</h1>
+            <p className={styles.copy}>
+              The grid opens on the current month and can jump to any month-year
+              combination while keeping one persistent record per publisher/month.
+            </p>
+          </div>
 
-          {message ? <div className={styles.message}>{message}</div> : null}
-
-          <form className={styles.form} onSubmit={handleMonthlySubmit}>
+          <div className={styles.matrixToolbar}>
             <label className={styles.label}>
               Group
               <select
                 className={styles.input}
                 value={selectedGroupId}
                 onChange={(event) => setSelectedGroupId(event.target.value)}
+                disabled={isLoadingGroups || groups.length === 0}
               >
-                <option value="all">All groups</option>
+                <option value="">Select group</option>
                 {groups.map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
@@ -205,153 +345,197 @@ function AddReportPage() {
             </label>
 
             <label className={styles.label}>
-              Publisher
-              <select
-                className={styles.input}
-                name="userId"
-                value={monthlyForm.userId}
-                onChange={handleMonthlyChange}
-              >
-                <option value="">Select publisher</option>
-                {reportableUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} ({user.groupName})
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className={styles.label}>
-              Month
+              Month / Year
               <input
                 className={styles.input}
-                name="month"
                 type="month"
-                value={monthlyForm.month}
-                onChange={handleMonthlyChange}
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
               />
             </label>
-
-            <label className={styles.checkboxRow}>
-              <input
-                type="checkbox"
-                name="isPresent"
-                checked={monthlyForm.isPresent}
-                onChange={handleMonthlyChange}
-              />
-              Mark publisher as present for this month
-            </label>
-
-            <button className={styles.primaryButton} type="submit">
-              {monthlyForm.reportId ? "Update month" : "Create month"}
-            </button>
-          </form>
-        </article>
-
-        <article className={styles.card}>
-          <p className={styles.kicker}>Incremental Entry</p>
-          <h2 className={styles.heading}>Add hours and bible studies over time</h2>
-          <p className={styles.copy}>
-            Each submission below creates a separate history row and rolls up into
-            the monthly total.
-          </p>
-
-          <form className={styles.form} onSubmit={handleEntrySubmit}>
-            <label className={styles.label}>
-              Hours
-              <input
-                className={styles.input}
-                name="hours"
-                type="number"
-                min="0"
-                step="0.5"
-                value={entryForm.hours}
-                onChange={handleEntryChange}
-                placeholder="0"
-              />
-            </label>
-
-            <label className={styles.label}>
-              Bible studies
-              <input
-                className={styles.input}
-                name="bibleStudies"
-                type="number"
-                min="0"
-                value={entryForm.bibleStudies}
-                onChange={handleEntryChange}
-                placeholder="0"
-              />
-            </label>
-
-            <button className={styles.primaryButton} type="submit">
-              Add activity entry
-            </button>
-          </form>
-        </article>
-      </div>
-
-      <article className={styles.card}>
-        <div className={styles.headerRow}>
-          <div>
-            <p className={styles.kicker}>Monthly Reports</p>
-            <h2 className={styles.heading}>Pick a month and inspect the build-up</h2>
-            <p className={styles.copy}>
-              Load an existing month to review attendance, totals, and the entry-by-entry history.
-            </p>
           </div>
         </div>
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
+        {message ? <div className={styles.message}>{message}</div> : null}
+
+        <div className={styles.matrixSummary}>
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>Selected Period</span>
+            <strong>{formatMonthLabel(selectedMonth)}</strong>
+          </div>
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>Total Hours</span>
+            <strong>{totals.hours}</strong>
+          </div>
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>Total BS</span>
+            <strong>{totals.bibleStudies}</strong>
+          </div>
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>Publishers With Records</span>
+            <strong>{totals.activeCells}</strong>
+          </div>
+        </div>
+
+        <div className={styles.matrixWrap}>
+          <table className={styles.matrixTable}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Group</th>
-                <th>Month</th>
-                <th>Present</th>
-                <th>Hours</th>
-                <th>BS</th>
-                <th>Actions</th>
+                <th className={styles.stickyColumn}>Publisher</th>
+                <th>{formatMonthLabel(selectedMonth)}</th>
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={`${user.id}-${user.reportId || "none"}`}>
-                  <td>{user.name}</td>
-                  <td>{user.groupName}</td>
-                  <td>{user.month || "-"}</td>
-                  <td>{user.isPresent ? "Yes" : "No"}</td>
-                  <td>{user.hours ?? "-"}</td>
-                  <td>{user.bibleStudies ?? "-"}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className={styles.textButton}
-                      onClick={() =>
-                        user.reportId ? selectExistingReport(user) : prepareNewMonth(user)
-                      }
-                    >
-                      {user.reportId ? "Load month" : "Create month"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filteredUsers.length === 0 ? (
+              {isLoadingMatrix ? (
+                Array.from({ length: 5 }, (_, rowIndex) => (
+                  <tr key={`matrix-loading-${rowIndex}`}>
+                    <td className={styles.stickyColumn}>
+                      <span className={styles.skeletonBlock} />
+                    </td>
+                    <td>
+                      <span className={styles.matrixSkeleton} />
+                    </td>
+                  </tr>
+                ))
+              ) : matrixRows.length > 0 ? (
+                matrixRows.map((user) => (
+                  <tr key={user.id}>
+                    <td className={styles.stickyColumn}>
+                      <div className={styles.publisherCell}>
+                        <strong>{user.name}</strong>
+                        <span>{user.status}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={
+                          selectedCell?.userId === user.id &&
+                          selectedCell?.month === user.month.value
+                            ? styles.matrixCellActive
+                            : styles.matrixCell
+                        }
+                        onClick={() => handleCellSelect(user, user.month)}
+                      >
+                        <span className={styles.matrixCellTop}>
+                          {user.month.report?.isPresent ? "Present" : "No entry"}
+                        </span>
+                        <span className={styles.matrixMetric}>
+                          Hrs {user.month.report?.hours || 0}
+                        </span>
+                        <span className={styles.matrixMetric}>
+                          BS {user.month.report?.bibleStudies || 0}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
-                  <td colSpan="7" className={styles.emptyCell}>
-                    No publishers are available for this group yet.
+                  <td colSpan="2" className={styles.emptyCell}>
+                    No publishers are assigned to this group yet.
                   </td>
                 </tr>
-              ) : null}
+              )}
             </tbody>
           </table>
         </div>
+      </article>
 
-        <div className={styles.historySection}>
+      <aside className={styles.sideStack}>
+        <article className={styles.card}>
+          <p className={styles.kicker}>Selected Cell</p>
+          <h2 className={styles.heading}>Monthly record details</h2>
+          <p className={styles.copy}>
+            Select a cell to mark attendance, add incremental activity, and review
+            the history for that month.
+          </p>
+
+          {selectedCell ? (
+            <>
+              <div className={styles.cellInspector}>
+                <div>
+                  <span className={styles.summaryLabel}>Publisher</span>
+                  <strong>{selectedCell.userName}</strong>
+                </div>
+                <div>
+                  <span className={styles.summaryLabel}>Month</span>
+                  <strong>{selectedCell.month}</strong>
+                </div>
+                <div>
+                  <span className={styles.summaryLabel}>Totals</span>
+                  <strong>
+                    {selectedCell.hours} hrs / {selectedCell.bibleStudies} BS
+                  </strong>
+                </div>
+              </div>
+
+              <label className={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={selectedCell.isPresent}
+                  onChange={(event) =>
+                    setSelectedCell((current) => ({
+                      ...current,
+                      isPresent: event.target.checked
+                    }))
+                  }
+                />
+                Mark publisher as present for this month
+              </label>
+
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={handlePresenceSave}
+              >
+                {selectedCell.reportId ? "Update monthly status" : "Create monthly record"}
+              </button>
+
+              <form className={styles.form} onSubmit={handleEntrySubmit}>
+                <label className={styles.label}>
+                  Hours to add
+                  <input
+                    className={styles.input}
+                    name="hours"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={entryForm.hours}
+                    onChange={handleEntryChange}
+                    placeholder="0"
+                  />
+                </label>
+
+                <label className={styles.label}>
+                  Bible studies to add
+                  <input
+                    className={styles.input}
+                    name="bibleStudies"
+                    type="number"
+                    min="0"
+                    value={entryForm.bibleStudies}
+                    onChange={handleEntryChange}
+                    placeholder="0"
+                  />
+                </label>
+
+                <button className={styles.primaryButton} type="submit">
+                  Add activity entry
+                </button>
+              </form>
+            </>
+          ) : (
+            <p className={styles.emptyState}>
+              Choose a month cell from the spreadsheet to manage that record.
+            </p>
+          )}
+        </article>
+
+        <article className={styles.card}>
           <div className={styles.panelHeader}>
-            <h3>Reporting history</h3>
-            <span>{history.length} entries</span>
+            <h3>Entry history</h3>
+            <span>{history.length} rows</span>
           </div>
 
           <div className={styles.tableWrap}>
@@ -364,25 +548,32 @@ function AddReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {history.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>{new Date(entry.createdAt).toLocaleString()}</td>
-                    <td>{entry.hours}</td>
-                    <td>{entry.bibleStudies}</td>
-                  </tr>
-                ))}
-                {history.length === 0 ? (
+                {isLoadingHistory ? (
                   <tr>
-                    <td colSpan="3" className={styles.emptyCell}>
-                      No activity entries have been logged for the selected month yet.
+                    <td colSpan="3" className={styles.loadingCell}>
+                      Loading history...
                     </td>
                   </tr>
-                ) : null}
+                ) : history.length > 0 ? (
+                  history.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{new Date(entry.createdAt).toLocaleString()}</td>
+                      <td>{entry.hours}</td>
+                      <td>{entry.bibleStudies}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" className={styles.emptyCell}>
+                      No incremental entries have been logged for this month yet.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-        </div>
-      </article>
+        </article>
+      </aside>
     </section>
   );
 }

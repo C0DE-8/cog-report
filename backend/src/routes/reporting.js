@@ -7,6 +7,10 @@ function isValidMonth(month) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
+function isValidYear(year) {
+  return /^\d{4}$/.test(String(year));
+}
+
 function logValidationError(req, message, details = {}) {
   console.warn("[reporting] Validation failed", {
     method: req.method,
@@ -246,6 +250,21 @@ router.post("/users", async (req, res) => {
 
 router.get("/users", async (req, res) => {
   try {
+    const { groupId } = req.query;
+    const queryParams = [];
+    let whereClause = "";
+
+    if (groupId) {
+      if (!/^\d+$/.test(String(groupId))) {
+        return sendValidationError(req, res, "Group id must be a number", {
+          providedGroupId: groupId
+        });
+      }
+
+      whereClause = "WHERE ru.group_id = ?";
+      queryParams.push(Number(groupId));
+    }
+
     const [users] = await pool.query(
       `SELECT
         ru.id,
@@ -264,13 +283,112 @@ router.get("/users", async (req, res) => {
       INNER JOIN groups g ON g.id = ru.group_id
       INNER JOIN publisher_statuses ps ON ps.id = ru.status_id
       LEFT JOIN monthly_reports mr ON mr.user_id = ru.id
-      ORDER BY ru.name ASC, mr.report_month DESC`
+      ${whereClause}
+      ORDER BY ru.name ASC, mr.report_month DESC`,
+      queryParams
     );
 
     return res.status(200).json({ users });
   } catch (error) {
     logControllerError(req, error, "fetch users");
     return res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
+
+router.get("/reports/matrix", async (req, res) => {
+  try {
+    const { groupId, year, month } = req.query;
+
+    if (!groupId) {
+      return sendValidationError(req, res, "Group id is required", {
+        requiredFields: ["groupId"]
+      });
+    }
+
+    if (!/^\d+$/.test(String(groupId))) {
+      return sendValidationError(req, res, "Group id must be a number", {
+        providedGroupId: groupId
+      });
+    }
+
+    const selectedMonth = month || null;
+    const selectedYear = selectedMonth ? selectedMonth.slice(0, 4) : year;
+
+    if (selectedMonth && !isValidMonth(selectedMonth)) {
+      return sendValidationError(req, res, "Month must use YYYY-MM format", {
+        providedMonth: selectedMonth
+      });
+    }
+
+    if (!selectedMonth && (!selectedYear || !isValidYear(selectedYear))) {
+      return sendValidationError(req, res, "Year must use YYYY format", {
+        providedYear: selectedYear ?? null
+      });
+    }
+
+    const [groupRows] = await pool.query(
+      "SELECT id, name, overseer FROM groups WHERE id = ? LIMIT 1",
+      [groupId]
+    );
+
+    if (groupRows.length === 0) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    const [users] = await pool.query(
+      `SELECT
+        ru.id,
+        ru.name,
+        ru.group_id AS groupId,
+        ps.name AS status
+      FROM report_users ru
+      INNER JOIN publisher_statuses ps ON ps.id = ru.status_id
+      WHERE ru.group_id = ?
+      ORDER BY ru.name ASC`,
+      [groupId]
+    );
+
+    const [reports] = await pool.query(
+      `SELECT
+        mr.id,
+        mr.user_id AS userId,
+        mr.report_month AS month,
+        mr.is_present AS isPresent,
+        mr.hours,
+        mr.bible_studies AS bibleStudies,
+        mr.updated_at AS updatedAt,
+        COUNT(mre.id) AS entryCount
+      FROM monthly_reports mr
+      INNER JOIN report_users ru ON ru.id = mr.user_id
+      LEFT JOIN monthly_report_entries mre ON mre.monthly_report_id = mr.id
+      WHERE ru.group_id = ?
+        AND mr.report_month BETWEEN ? AND ?
+      GROUP BY
+        mr.id,
+        mr.user_id,
+        mr.report_month,
+        mr.is_present,
+        mr.hours,
+        mr.bible_studies,
+        mr.updated_at
+      ORDER BY mr.report_month ASC, mr.user_id ASC`,
+      [
+        groupId,
+        selectedMonth || `${selectedYear}-01`,
+        selectedMonth || `${selectedYear}-12`
+      ]
+    );
+
+    return res.status(200).json({
+      group: groupRows[0],
+      year: Number(selectedYear),
+      month: selectedMonth,
+      users,
+      reports
+    });
+  } catch (error) {
+    logControllerError(req, error, "fetch report matrix");
+    return res.status(500).json({ message: "Failed to fetch report matrix" });
   }
 });
 

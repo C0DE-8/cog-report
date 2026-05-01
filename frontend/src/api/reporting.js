@@ -20,8 +20,8 @@ export function createReportingUser(payload) {
   return apiClient.post("/reporting/users", payload);
 }
 
-export function getReportingUsers() {
-  return apiClient.get("/reporting/users");
+export function getReportingUsers(params = {}) {
+  return apiClient.get("/reporting/users", { params });
 }
 
 export function updateReportingUser(id, payload) {
@@ -34,6 +34,10 @@ export function createUserReport(userId, payload) {
 
 export function updateUserReport(reportId, payload) {
   return apiClient.put(`/reporting/reports/${reportId}`, payload);
+}
+
+export function getReportMatrix(params) {
+  return apiClient.get("/reporting/reports/matrix", { params });
 }
 
 export function getReportEntries(reportId) {
