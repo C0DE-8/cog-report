@@ -7,6 +7,40 @@ function isValidMonth(month) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
 }
 
+function logValidationError(req, message, details = {}) {
+  console.warn("[reporting] Validation failed", {
+    method: req.method,
+    path: req.originalUrl,
+    params: req.params,
+    query: req.query,
+    body: req.body,
+    message,
+    details
+  });
+}
+
+function logControllerError(req, error, context) {
+  console.error("[reporting] Controller error", {
+    method: req.method,
+    path: req.originalUrl,
+    params: req.params,
+    query: req.query,
+    body: req.body,
+    context,
+    errorMessage: error.message,
+    stack: error.stack
+  });
+}
+
+function sendValidationError(req, res, message, details = {}) {
+  logValidationError(req, message, details);
+
+  return res.status(400).json({
+    message,
+    details
+  });
+}
+
 async function getStatusRecord(connection, { statusId, status }) {
   if (statusId) {
     const [rows] = await connection.query(
@@ -34,9 +68,14 @@ router.post("/groups", async (req, res) => {
     const { name, overseer } = req.body;
 
     if (!name || !overseer) {
-      return res.status(400).json({
-        message: "Group name and group overseer are required"
-      });
+      return sendValidationError(
+        req,
+        res,
+        "Group name and group overseer are required",
+        {
+          requiredFields: ["name", "overseer"]
+        }
+      );
     }
 
     const [result] = await pool.query(
@@ -53,6 +92,7 @@ router.post("/groups", async (req, res) => {
       }
     });
   } catch (error) {
+    logControllerError(req, error, "create group");
     return res.status(500).json({ message: "Failed to create group" });
   }
 });
@@ -73,6 +113,7 @@ router.get("/groups", async (req, res) => {
 
     return res.status(200).json({ groups });
   } catch (error) {
+    logControllerError(req, error, "fetch groups");
     return res.status(500).json({ message: "Failed to fetch groups" });
   }
 });
@@ -85,6 +126,7 @@ router.get("/statuses", async (req, res) => {
 
     return res.status(200).json({ statuses });
   } catch (error) {
+    logControllerError(req, error, "fetch statuses");
     return res.status(500).json({ message: "Failed to fetch statuses" });
   }
 });
@@ -95,9 +137,15 @@ router.put("/groups/:id", async (req, res) => {
     const { name, overseer } = req.body;
 
     if (!name || !overseer) {
-      return res.status(400).json({
-        message: "Group name and group overseer are required"
-      });
+      return sendValidationError(
+        req,
+        res,
+        "Group name and group overseer are required",
+        {
+          requiredFields: ["name", "overseer"],
+          groupId: id
+        }
+      );
     }
 
     const [result] = await pool.query(
@@ -113,6 +161,7 @@ router.put("/groups/:id", async (req, res) => {
       message: "Group updated successfully"
     });
   } catch (error) {
+    logControllerError(req, error, "update group");
     return res.status(500).json({ message: "Failed to update group" });
   }
 });
@@ -122,9 +171,14 @@ router.post("/users", async (req, res) => {
     const { groupId, statusId, status, name } = req.body;
 
     if (!groupId || !name || (!statusId && !status)) {
-      return res.status(400).json({
-        message: "Group, status, and name are required"
-      });
+      return sendValidationError(
+        req,
+        res,
+        "Group, status, and name are required",
+        {
+          requiredFields: ["groupId", "name", "statusId or status"]
+        }
+      );
     }
 
     const [groups] = await pool.query(
@@ -139,7 +193,10 @@ router.post("/users", async (req, res) => {
     const statusRecord = await getStatusRecord(pool, { statusId, status });
 
     if (!statusRecord) {
-      return res.status(400).json({ message: "Invalid status" });
+      return sendValidationError(req, res, "Invalid status", {
+        providedStatusId: statusId || null,
+        providedStatus: status || null
+      });
     }
 
     const [userResult] = await pool.query(
@@ -159,6 +216,7 @@ router.post("/users", async (req, res) => {
       }
     });
   } catch (error) {
+    logControllerError(req, error, "create user");
     return res.status(500).json({ message: "Failed to add user" });
   }
 });
@@ -187,6 +245,7 @@ router.get("/users", async (req, res) => {
 
     return res.status(200).json({ users });
   } catch (error) {
+    logControllerError(req, error, "fetch users");
     return res.status(500).json({ message: "Failed to fetch users" });
   }
 });
@@ -197,9 +256,15 @@ router.put("/users/:id", async (req, res) => {
     const { groupId, statusId, status, name } = req.body;
 
     if (!groupId || !name || (!statusId && !status)) {
-      return res.status(400).json({
-        message: "Group, status, and name are required"
-      });
+      return sendValidationError(
+        req,
+        res,
+        "Group, status, and name are required",
+        {
+          requiredFields: ["groupId", "name", "statusId or status"],
+          userId: id
+        }
+      );
     }
 
     const [groupRows] = await pool.query(
@@ -214,7 +279,11 @@ router.put("/users/:id", async (req, res) => {
     const statusRecord = await getStatusRecord(pool, { statusId, status });
 
     if (!statusRecord) {
-      return res.status(400).json({ message: "Invalid status" });
+      return sendValidationError(req, res, "Invalid status", {
+        userId: id,
+        providedStatusId: statusId || null,
+        providedStatus: status || null
+      });
     }
 
     const [userResult] = await pool.query(
@@ -230,6 +299,7 @@ router.put("/users/:id", async (req, res) => {
 
     return res.status(200).json({ message: "User updated successfully" });
   } catch (error) {
+    logControllerError(req, error, "update user");
     return res.status(500).json({ message: "Failed to update user" });
   }
 });
@@ -240,12 +310,18 @@ router.post("/users/:id/reports", async (req, res) => {
     const { month, hours, bibleStudies } = req.body;
 
     if (!month) {
-      return res.status(400).json({ message: "Month is required" });
+      return sendValidationError(req, res, "Month is required", {
+        userId: id,
+        expectedFormat: "YYYY-MM",
+        receivedMonth: month ?? null
+      });
     }
 
     if (!isValidMonth(month)) {
-      return res.status(400).json({
-        message: "Month must use YYYY-MM format"
+      return sendValidationError(req, res, "Month must use YYYY-MM format", {
+        userId: id,
+        expectedFormat: "YYYY-MM",
+        receivedMonth: month
       });
     }
 
@@ -253,9 +329,16 @@ router.post("/users/:id/reports", async (req, res) => {
     const parsedBibleStudies = Number(bibleStudies || 0);
 
     if (Number.isNaN(parsedHours) || Number.isNaN(parsedBibleStudies)) {
-      return res.status(400).json({
-        message: "Hours and bible studies must be numbers"
-      });
+      return sendValidationError(
+        req,
+        res,
+        "Hours and bible studies must be numbers",
+        {
+          userId: id,
+          receivedHours: hours ?? null,
+          receivedBibleStudies: bibleStudies ?? null
+        }
+      );
     }
 
     const [users] = await pool.query(
@@ -288,6 +371,7 @@ router.post("/users/:id/reports", async (req, res) => {
       }
     });
   } catch (error) {
+    logControllerError(req, error, "create report");
     return res.status(500).json({ message: "Failed to save report" });
   }
 });
@@ -298,12 +382,18 @@ router.put("/reports/:reportId", async (req, res) => {
     const { month, hours, bibleStudies } = req.body;
 
     if (!month) {
-      return res.status(400).json({ message: "Month is required" });
+      return sendValidationError(req, res, "Month is required", {
+        reportId,
+        expectedFormat: "YYYY-MM",
+        receivedMonth: month ?? null
+      });
     }
 
     if (!isValidMonth(month)) {
-      return res.status(400).json({
-        message: "Month must use YYYY-MM format"
+      return sendValidationError(req, res, "Month must use YYYY-MM format", {
+        reportId,
+        expectedFormat: "YYYY-MM",
+        receivedMonth: month
       });
     }
 
@@ -311,9 +401,16 @@ router.put("/reports/:reportId", async (req, res) => {
     const parsedBibleStudies = Number(bibleStudies || 0);
 
     if (Number.isNaN(parsedHours) || Number.isNaN(parsedBibleStudies)) {
-      return res.status(400).json({
-        message: "Hours and bible studies must be numbers"
-      });
+      return sendValidationError(
+        req,
+        res,
+        "Hours and bible studies must be numbers",
+        {
+          reportId,
+          receivedHours: hours ?? null,
+          receivedBibleStudies: bibleStudies ?? null
+        }
+      );
     }
 
     const [result] = await pool.query(
@@ -329,6 +426,7 @@ router.put("/reports/:reportId", async (req, res) => {
 
     return res.status(200).json({ message: "Report updated successfully" });
   } catch (error) {
+    logControllerError(req, error, "update report");
     return res.status(500).json({ message: "Failed to update report" });
   }
 });
@@ -346,6 +444,7 @@ router.delete("/users/:id", async (req, res) => {
 
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
+    logControllerError(req, error, "delete user");
     return res.status(500).json({ message: "Failed to delete user" });
   }
 });

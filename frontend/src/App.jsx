@@ -1,50 +1,31 @@
-import { useState } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import AppLayout from "./components/AppLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import AuthPage from "./pages/auth/AuthPage";
-import ReportingPage from "./pages/reporting/ReportingPage";
-import styles from "./App.module.css";
-
-const sections = [
-  { key: "auth", label: "Auth" },
-  { key: "reporting", label: "Reporting" }
-];
+import DashboardPage from "./pages/dashboard/DashboardPage";
+import CreateGroupPage from "./pages/groups/CreateGroupPage";
+import ViewGroupsPage from "./pages/groups/ViewGroupsPage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
 function App() {
-  const [activeSection, setActiveSection] = useState("auth");
-
   return (
-    <div className={styles.appShell}>
-      <header className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>Cog Report</p>
-          <h1 className={styles.title}>Group-first reporting dashboard</h1>
-          <p className={styles.subtitle}>
-            Manage authentication, groups, publishers, and monthly reports from
-            one frontend.
-          </p>
-        </div>
-
-        <nav className={styles.nav}>
-          {sections.map((section) => (
-            <button
-              key={section.key}
-              type="button"
-              className={
-                activeSection === section.key
-                  ? `${styles.navButton} ${styles.navButtonActive}`
-                  : styles.navButton
-              }
-              onClick={() => setActiveSection(section.key)}
-            >
-              {section.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <main className={styles.pageArea}>
-        {activeSection === "auth" ? <AuthPage /> : <ReportingPage />}
-      </main>
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/auth/:mode" element={<AuthPage />} />
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/groups/create" element={<CreateGroupPage />} />
+        <Route path="/groups/view" element={<ViewGroupsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
 

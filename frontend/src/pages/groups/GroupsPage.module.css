@@ -1,0 +1,141 @@
+.page,
+.pageGrid {
+  display: grid;
+  gap: 20px;
+}
+
+.pageGrid {
+  grid-template-columns: 0.9fr 1.4fr;
+}
+
+.sideStack {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
+.card {
+  background: rgba(10, 13, 20, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  padding: 24px;
+  backdrop-filter: blur(16px);
+}
+
+.kicker {
+  margin: 0 0 8px;
+  color: #8fc5ff;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.76rem;
+}
+
+.heading {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+}
+
+.copy {
+  margin: 12px 0 0;
+  color: #aebbd0;
+}
+
+.message {
+  margin: 16px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(243, 151, 77, 0.14);
+  color: #ffe6c4;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.label {
+  display: grid;
+  gap: 8px;
+  color: #dce4f1;
+}
+
+.input {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5efe7;
+}
+
+.primaryButton {
+  border: 0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #4d91f3, #2e62de);
+  color: #f8fbff;
+  cursor: pointer;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 13px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.table th {
+  color: #98acc9;
+  font-weight: 500;
+}
+
+.textButton,
+.textButtonDanger {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.textButton {
+  color: #8fc5ff;
+  margin-right: 12px;
+}
+
+.textButtonDanger {
+  color: #ff9d92;
+}
+
+.emptyCell {
+  text-align: center;
+  color: #97a8c1;
+  padding: 24px 10px;
+}
+
+@media (max-width: 1080px) {
+  .pageGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

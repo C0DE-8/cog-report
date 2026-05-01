@@ -1,0 +1,155 @@
+.page,
+.contentGrid,
+.sideColumn {
+  display: grid;
+  gap: 20px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 20px;
+}
+
+.kicker {
+  margin: 0 0 8px;
+  color: #f1a869;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.76rem;
+}
+
+.heading {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+}
+
+.copy {
+  margin: 12px 0 0;
+  color: #aebbd0;
+  max-width: 44rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.metricCard,
+.panel {
+  background: rgba(10, 13, 20, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  padding: 22px;
+  backdrop-filter: blur(16px);
+}
+
+.metricCard {
+  display: grid;
+  gap: 8px;
+}
+
+.metricCard span {
+  color: #aebbd0;
+}
+
+.metricCard strong {
+  font-size: 2rem;
+}
+
+.contentGrid {
+  grid-template-columns: 1.5fr 0.7fr;
+  align-items: start;
+}
+
+.filterRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filterButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #dce4f1;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.filterButtonActive {
+  background: linear-gradient(135deg, #4d91f3, #2e62de);
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.panelHeader h3 {
+  margin: 0;
+}
+
+.panelHeader span {
+  color: #98acc9;
+}
+
+.categoryStack {
+  display: grid;
+  gap: 22px;
+}
+
+.categorySection {
+  display: grid;
+  gap: 14px;
+}
+
+.listGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.publisherCard {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.publisherCard span {
+  color: #9eb0c9;
+  font-size: 0.94rem;
+}
+
+.message {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(243, 151, 77, 0.14);
+  color: #ffe6c4;
+}
+
+.sideNote {
+  margin: 0;
+  color: #b7c3d5;
+}
+
+.emptyState {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #97a8c1;
+}
+
+@media (max-width: 1080px) {
+  .hero,
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}

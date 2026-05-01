@@ -1,0 +1,113 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.sidebar {
+  padding: 28px 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 11, 17, 0.62);
+  backdrop-filter: blur(18px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 28px;
+}
+
+.brand {
+  display: grid;
+  gap: 10px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  color: #f1a869;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.copy {
+  margin: 0;
+  color: #a9b7cf;
+}
+
+.nav {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.menuLabel {
+  margin-top: 10px;
+  color: #8ba0c0;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.74rem;
+}
+
+.link {
+  border-radius: 18px;
+  padding: 12px 14px;
+  color: #dce4f1;
+  background: rgba(255, 255, 255, 0.03);
+  transition: 160ms ease;
+}
+
+.link:hover,
+.linkActive {
+  background: linear-gradient(135deg, rgba(77, 145, 243, 0.24), rgba(243, 151, 77, 0.16));
+  color: #fff;
+}
+
+.footer {
+  display: grid;
+  gap: 12px;
+}
+
+.userCard {
+  display: grid;
+  gap: 4px;
+  border-radius: 20px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.userCard span {
+  color: #a9b7cf;
+  font-size: 0.92rem;
+}
+
+.logoutButton {
+  border: 0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5efe7;
+  cursor: pointer;
+}
+
+.content {
+  padding: 28px;
+}
+
+@media (max-width: 980px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .content {
+    padding: 20px;
+  }
+}
