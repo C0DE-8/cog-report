@@ -229,6 +229,30 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.compactTable {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.compactTable th,
+.compactTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.compactTable th {
+  background: rgba(10, 13, 20, 0.94);
+  color: #98acc9;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
 .matrixTable {
   width: 100%;
   min-width: 1200px;
@@ -271,6 +295,43 @@
 .publisherCell span {
   color: #98acc9;
   font-size: 0.92rem;
+}
+
+.publisherInline {
+  display: grid;
+  gap: 2px;
+}
+
+.inlineCheckbox {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: #dce4f1;
+  font-size: 0.92rem;
+}
+
+.compactInput {
+  width: 88px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5efe7;
+}
+
+.inlineSaveButton {
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: linear-gradient(135deg, #4d91f3, #2e62de);
+  color: #f8fbff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.inlineSaveButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .matrixCell,
@@ -347,6 +408,34 @@
 
 .panelHeader h3 {
   margin: 0;
+}
+
+.matrixHint {
+  margin: 14px 0 0;
+  color: #98acc9;
+}
+
+.editorHeader {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.editorGrid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.editorPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tableWrap {
@@ -511,5 +600,39 @@
 
   .matrixSummary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .editorHeader,
+  .editorGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .card {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .matrixSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .matrixTable {
+    min-width: 720px;
+  }
+
+  .compactTable {
+    min-width: 760px;
+  }
+
+  .stickyColumn {
+    min-width: 180px;
+  }
+
+  .tab,
+  .tabActive {
+    min-width: 150px;
+    padding: 12px 14px;
   }
 }
