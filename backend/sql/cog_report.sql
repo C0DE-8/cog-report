@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: May 01, 2026 at 06:34 PM
+-- Generation Time: May 01, 2026 at 09:44 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -40,8 +40,9 @@ CREATE TABLE `groups` (
 
 INSERT INTO `groups` (`id`, `name`, `overseer`, `created_at`) VALUES
 (1, 'GROUP 1', 'RUKEVWE', '2026-05-01 15:03:23'),
-(2, 'GROUP 2', 'RUKEVWE 2', '2026-05-01 16:15:13'),
-(3, 'GROUP 3', 'RUKEVWE 3', '2026-05-01 16:15:26');
+(2, 'GROUP 2', 'RUKEVWE rr', '2026-05-01 16:15:13'),
+(3, 'GROUP 3', 'RUKEVWE three', '2026-05-01 16:15:26'),
+(4, 'GROUP 4', 'pos', '2026-05-01 16:35:41');
 
 -- --------------------------------------------------------
 
@@ -65,7 +66,10 @@ CREATE TABLE `monthly_reports` (
 --
 
 INSERT INTO `monthly_reports` (`id`, `user_id`, `report_month`, `is_present`, `hours`, `bible_studies`, `created_at`, `updated_at`) VALUES
-(1, 1, '2023-04', 1, 1.00, 1, '2026-05-01 16:00:01', '2026-05-01 16:34:07');
+(1, 1, '2023-03', 1, 1.00, 1, '2026-05-01 16:00:01', '2026-05-01 16:57:40'),
+(2, 5, '2026-05', 0, 1.00, 0, '2026-05-01 17:47:18', '2026-05-01 17:47:18'),
+(3, 3, '2026-05', 1, 1.00, 3, '2026-05-01 18:02:24', '2026-05-01 18:02:28'),
+(4, 1, '2026-05', 1, 45.00, 2, '2026-05-01 18:02:44', '2026-05-01 18:45:52');
 
 -- --------------------------------------------------------
 
@@ -86,7 +90,12 @@ CREATE TABLE `monthly_report_entries` (
 --
 
 INSERT INTO `monthly_report_entries` (`id`, `monthly_report_id`, `hours`, `bible_studies`, `created_at`) VALUES
-(1, 1, 1.00, 1, '2026-05-01 16:00:01');
+(1, 1, 1.00, 1, '2026-05-01 16:00:01'),
+(2, 2, 1.00, 0, '2026-05-01 17:47:18'),
+(3, 3, 1.00, 0, '2026-05-01 18:02:24'),
+(4, 3, 0.00, 3, '2026-05-01 18:02:28'),
+(5, 4, 0.00, 2, '2026-05-01 18:02:44'),
+(6, 4, 45.00, 0, '2026-05-01 18:02:57');
 
 -- --------------------------------------------------------
 
@@ -132,7 +141,9 @@ INSERT INTO `report_users` (`id`, `group_id`, `name`, `status`, `status_id`, `cr
 (1, 1, 'RUKEVWE', 'Pioneer', 1, '2026-05-01 15:31:23'),
 (2, 1, 'sam light', 'Pioneer', 1, '2026-05-01 16:14:50'),
 (3, 2, 'mark', 'Aux Pioneer', 2, '2026-05-01 16:15:39'),
-(4, 3, 'luck', 'Other', 3, '2026-05-01 16:15:58');
+(4, 3, 'luck', 'Other', 3, '2026-05-01 16:15:58'),
+(5, 1, 'john', 'Pioneer', 1, '2026-05-01 16:37:01'),
+(6, 4, 'ben', 'Aux Pioneer', 2, '2026-05-01 18:05:40');
 
 -- --------------------------------------------------------
 
@@ -171,14 +182,15 @@ ALTER TABLE `groups`
 --
 ALTER TABLE `monthly_reports`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_user_month` (`user_id`,`report_month`);
+  ADD UNIQUE KEY `unique_user_month` (`user_id`,`report_month`),
+  ADD KEY `idx_monthly_reports_report_month` (`report_month`);
 
 --
 -- Indexes for table `monthly_report_entries`
 --
 ALTER TABLE `monthly_report_entries`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_monthly_report_entries_report` (`monthly_report_id`);
+  ADD KEY `idx_monthly_report_entries_report_created` (`monthly_report_id`,`created_at`);
 
 --
 -- Indexes for table `publisher_statuses`
@@ -210,19 +222,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `groups`
 --
 ALTER TABLE `groups`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `monthly_reports`
 --
 ALTER TABLE `monthly_reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `monthly_report_entries`
 --
 ALTER TABLE `monthly_report_entries`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `publisher_statuses`
@@ -234,7 +246,7 @@ ALTER TABLE `publisher_statuses`
 -- AUTO_INCREMENT for table `report_users`
 --
 ALTER TABLE `report_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `users`

@@ -9,6 +9,7 @@ import CreateGroupPage from "./pages/groups/CreateGroupPage";
 import ManageGroupsPage from "./pages/groups/ManageGroupsPage";
 import ManagePublishersPage from "./pages/groups/ManagePublishersPage";
 import ViewGroupsPage from "./pages/groups/ViewGroupsPage";
+import NotFoundPage from "./pages/not-found/NotFoundPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import ViewReportPage from "./pages/reports/ViewReportPage";
 
@@ -34,7 +35,7 @@ function App() {
         <Route path="/groups/view" element={<ViewGroupsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
