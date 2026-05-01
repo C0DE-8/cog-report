@@ -1,0 +1,104 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1.4fr;
+  gap: 24px;
+}
+
+.infoPanel,
+.card {
+  background: rgba(12, 15, 23, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.22);
+}
+
+.infoPanel {
+  padding: 28px;
+}
+
+.kicker {
+  color: #f5b36a;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+}
+
+.heading {
+  margin: 12px 0;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+}
+
+.copy {
+  margin: 0;
+  color: #bcc7da;
+  max-width: 34rem;
+}
+
+.message {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(243, 151, 77, 0.12);
+  color: #ffe5c4;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card {
+  padding: 22px;
+}
+
+.cardActive {
+  border-color: rgba(243, 151, 77, 0.45);
+}
+
+.cardToggle {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: #f6efe5;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 0 0 14px;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.label {
+  display: grid;
+  gap: 8px;
+  color: #d4ddec;
+}
+
+.input {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f6efe5;
+}
+
+.submitButton {
+  border: 0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f3974d, #d85c43);
+  color: #fff9f1;
+  cursor: pointer;
+}
+
+@media (max-width: 920px) {
+  .layout,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
