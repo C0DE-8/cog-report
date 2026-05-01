@@ -8,6 +8,8 @@ const navigationItems = [
   { type: "label", label: "Groups" },
   { to: "/groups/create", label: "Create Group" },
   { to: "/groups/view", label: "View Groups" },
+  { to: "/groups/manage", label: "Manage Groups" },
+  { to: "/groups/manage-publishers", label: "Manage Publishers" },
   { to: "/groups/assign", label: "Assign Publishers" },
   { to: "/groups/reports", label: "Add Report" },
   { to: "/profile", label: "Profile" }

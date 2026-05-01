@@ -98,7 +98,11 @@ function AddReportPage() {
         return {
           ...user,
           report,
-          draft
+          draft,
+          visibleHours: draft.isPresent ? Number(report?.hours || 0) : 0,
+          visibleBibleStudies: draft.isPresent
+            ? Number(report?.bibleStudies || 0)
+            : 0
         };
       }),
     [reportMap, rowDrafts, users]
@@ -106,15 +110,15 @@ function AddReportPage() {
 
   const totals = useMemo(
     () =>
-      reports.reduce(
-        (summary, report) => ({
-          hours: summary.hours + Number(report.hours || 0),
-          bibleStudies: summary.bibleStudies + Number(report.bibleStudies || 0),
-          activePublishers: summary.activePublishers + (report.isPresent ? 1 : 0)
+      tableRows.reduce(
+        (summary, row) => ({
+          hours: summary.hours + row.visibleHours,
+          bibleStudies: summary.bibleStudies + row.visibleBibleStudies,
+          activePublishers: summary.activePublishers + (row.draft.isPresent ? 1 : 0)
         }),
         { hours: 0, bibleStudies: 0, activePublishers: 0 }
       ),
-    [reports]
+    [tableRows]
   );
 
   const hydrateDrafts = (nextUsers, nextReports) => {
@@ -347,19 +351,27 @@ function AddReportPage() {
                     </td>
                     <td>{row.status}</td>
                     <td>
-                      <label className={styles.inlineCheckbox}>
-                        <input
-                          type="checkbox"
-                          checked={row.draft.isPresent}
-                          onChange={(event) =>
-                            updateDraft(row.id, "isPresent", event.target.checked)
-                          }
-                        />
+                      <button
+                        type="button"
+                        className={
+                          row.draft.isPresent ? styles.toggleActive : styles.toggleInactive
+                        }
+                        onClick={() =>
+                          updateDraft(row.id, "isPresent", !row.draft.isPresent)
+                        }
+                        aria-pressed={row.draft.isPresent}
+                        aria-label={`Set preach activity for ${row.name} to ${
+                          row.draft.isPresent ? "no" : "yes"
+                        }`}
+                      >
+                        <span className={styles.toggleTrack}>
+                          <span className={styles.toggleThumb} />
+                        </span>
                         <span>{row.draft.isPresent ? "Yes" : "No"}</span>
-                      </label>
+                      </button>
                     </td>
-                    <td>{row.report?.hours || 0}</td>
-                    <td>{row.report?.bibleStudies || 0}</td>
+                    <td>{row.visibleHours}</td>
+                    <td>{row.visibleBibleStudies}</td>
                     <td>
                       <input
                         className={styles.compactInput}

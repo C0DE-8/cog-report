@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { deleteReportingUser, getGroups, getReportingUsers } from "../../api/reporting";
+import { getGroups, getReportingUsers } from "../../api/reporting";
 import styles from "./GroupsPage.module.css";
 
 function ViewGroupsPage() {
@@ -101,37 +101,29 @@ function ViewGroupsPage() {
 
   const filteredUsers = useMemo(() => {
     const normalizedTerm = searchTerm.trim().toLowerCase();
+    const map = new Map();
+
+    users.forEach((user) => {
+      if (!map.has(user.id)) {
+        map.set(user.id, user);
+      }
+    });
+
+    const uniqueUsers = Array.from(map.values());
 
     if (!normalizedTerm) {
-      return users;
+      return uniqueUsers;
     }
 
-    return users.filter((user) =>
+    return uniqueUsers.filter((user) =>
       user.name.toLowerCase().includes(normalizedTerm)
     );
   }, [searchTerm, users]);
 
-  const handleDelete = async (id) => {
-    try {
-      const response = await deleteReportingUser(id);
-      setMessage(response.data.message);
-
-      if (selectedGroupId) {
-        setIsLoadingUsers(true);
-        const usersResponse = await getReportingUsers({ groupId: selectedGroupId });
-        setUsers(usersResponse.data.users || []);
-      }
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to delete publisher");
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
   const renderLoadingRows = () =>
     Array.from({ length: 4 }, (_, index) => (
       <tr key={`loading-${index}`}>
-        <td colSpan="7" className={styles.loadingCell}>
+        <td colSpan="3" className={styles.loadingCell}>
           <div className={styles.skeletonRow}>
             <span className={styles.skeletonBlock} />
             <span className={styles.skeletonBlockShort} />
@@ -146,9 +138,9 @@ function ViewGroupsPage() {
         <div className={styles.headerStack}>
           <div>
             <p className={styles.kicker}>View Groups</p>
-            <h1 className={styles.heading}>Browse each group by tab</h1>
+            <h1 className={styles.heading}>Browse publishers by group</h1>
             <p className={styles.copy}>
-              Switch groups to load the assigned publishers for that team only.
+              Switch groups to review assigned publishers without opening the management tools.
             </p>
           </div>
 
@@ -212,8 +204,7 @@ function ViewGroupsPage() {
 
             {selectedGroup ? (
               <p className={styles.groupMetric}>
-                {filteredUsers.length} matching publisher
-                {filteredUsers.length === 1 ? "" : "s"}
+                {filteredUsers.length} publisher{filteredUsers.length === 1 ? "" : "s"}
               </p>
             ) : null}
           </div>
@@ -225,37 +216,21 @@ function ViewGroupsPage() {
                   <th>Name</th>
                   <th>Group</th>
                   <th>Status</th>
-                  <th>Month</th>
-                  <th>Hours</th>
-                  <th>BS</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoadingUsers
                   ? renderLoadingRows()
                   : filteredUsers.map((user) => (
-                      <tr key={`${user.id}-${user.reportId || "none"}`}>
+                      <tr key={user.id}>
                         <td>{user.name}</td>
                         <td>{user.groupName}</td>
                         <td>{user.status}</td>
-                        <td>{user.month || "-"}</td>
-                        <td>{user.hours ?? "-"}</td>
-                        <td>{user.bibleStudies ?? "-"}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className={styles.textButtonDanger}
-                            onClick={() => handleDelete(user.id)}
-                          >
-                            Delete
-                          </button>
-                        </td>
                       </tr>
                     ))}
                 {!isLoadingUsers && filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className={styles.emptyCell}>
+                    <td colSpan="3" className={styles.emptyCell}>
                       {selectedGroup
                         ? "No publishers matched this group and search."
                         : "Choose a group to view assigned publishers."}
