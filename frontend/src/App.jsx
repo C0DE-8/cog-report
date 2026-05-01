@@ -10,6 +10,7 @@ import ManageGroupsPage from "./pages/groups/ManageGroupsPage";
 import ManagePublishersPage from "./pages/groups/ManagePublishersPage";
 import ViewGroupsPage from "./pages/groups/ViewGroupsPage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import ViewReportPage from "./pages/reports/ViewReportPage";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path="/groups/manage" element={<ManageGroupsPage />} />
         <Route path="/groups/manage-publishers" element={<ManagePublishersPage />} />
         <Route path="/reports" element={<AddReportPage />} />
+        <Route path="/reports/view" element={<ViewReportPage />} />
         <Route path="/groups/view" element={<ViewGroupsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>

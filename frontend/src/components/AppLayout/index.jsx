@@ -4,8 +4,12 @@ import { useAuth } from "../../contexts/AuthContext";
 import styles from "./AppLayout.module.css";
 
 const primaryNavigationItems = [
-  { to: "/dashboard", label: "Overview" },
-  { to: "/reports", label: "Add Report" }
+  { to: "/dashboard", label: "Overview" }
+];
+
+const reportNavigationItems = [
+  { to: "/reports", label: "Add Report" },
+  { to: "/reports/view", label: "View Report" }
 ];
 
 const groupNavigationItems = [
@@ -22,7 +26,9 @@ function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isGroupRoute = location.pathname.startsWith("/groups");
+  const isReportRoute = location.pathname.startsWith("/reports");
   const [isGroupsOpen, setIsGroupsOpen] = useState(false);
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -50,6 +56,50 @@ function AppLayout() {
                 {item.label}
               </NavLink>
             ))}
+
+            <div className={styles.menuGroup}>
+              <button
+                type="button"
+                className={
+                  isReportRoute || isReportsOpen
+                    ? `${styles.accordionToggle} ${styles.accordionToggleActive}`
+                    : styles.accordionToggle
+                }
+                onClick={() => setIsReportsOpen((current) => !current)}
+                aria-expanded={isReportsOpen}
+                aria-controls="reports-navigation"
+              >
+                <span>Reports</span>
+                <span
+                  className={
+                    isReportsOpen ? `${styles.chevron} ${styles.chevronOpen}` : styles.chevron
+                  }
+                >
+                  ▾
+                </span>
+              </button>
+
+              <div
+                id="reports-navigation"
+                className={
+                  isReportsOpen
+                    ? `${styles.subnav} ${styles.subnavOpen}`
+                    : styles.subnav
+                }
+              >
+                {reportNavigationItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      isActive ? `${styles.subLink} ${styles.subLinkActive}` : styles.subLink
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
 
             <div className={styles.menuGroup}>
               <button
