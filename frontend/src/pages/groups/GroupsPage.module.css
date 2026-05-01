@@ -85,6 +85,12 @@
   margin-bottom: 16px;
 }
 
+.filterControls {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(180px, 220px);
+  gap: 12px;
+}
+
 .tableWrap {
   overflow-x: auto;
 }
@@ -137,5 +143,9 @@
   .headerRow {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .filterControls {
+    grid-template-columns: 1fr;
   }
 }

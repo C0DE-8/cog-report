@@ -31,102 +31,93 @@ function DashboardPage() {
     { hours: 0, bibleStudies: 0 }
   );
 
-  const groupedUsers = categoryOrder.map((category) => ({
-    category,
-    users: users.filter((user) => user.status === category)
-  }));
-
-  const visibleSections =
+  const filteredUsers =
     activeCategory === "All"
-      ? groupedUsers
-      : groupedUsers.filter((entry) => entry.category === activeCategory);
+      ? users
+      : users.filter((user) => user.status === activeCategory);
+
+  const filteredSummary = filteredUsers.reduce(
+    (accumulator, user) => {
+      accumulator.hours += Number(user.hours || 0);
+      accumulator.bibleStudies += Number(user.bibleStudies || 0);
+      return accumulator;
+    },
+    { hours: 0, bibleStudies: 0 }
+  );
 
   return (
     <section className={styles.page}>
       <header className={styles.hero}>
         <div>
           <p className={styles.kicker}>Overview</p>
-          <h2 className={styles.heading}>Ministry summary across all categories</h2>
+          <h2 className={styles.heading}>High-level ministry totals</h2>
           <p className={styles.copy}>
-            Keep this page focused on totals and category health. Detailed report
-            entry now lives in the group management view.
+            This page stays focused on aggregate performance only. Detailed data
+            entry and publisher management live in the group views.
           </p>
         </div>
 
         <div className={styles.summaryGrid}>
           <article className={styles.metricCard}>
-            <span>Total Hours</span>
+            <span>Organization Hours</span>
             <strong>{summary.hours.toFixed(1)}</strong>
           </article>
           <article className={styles.metricCard}>
-            <span>Total Bible Studies</span>
+            <span>Organization Bible Studies</span>
             <strong>{summary.bibleStudies}</strong>
           </article>
         </div>
       </header>
 
-      <div className={styles.contentGrid}>
-        <article className={styles.panel}>
-          <div className={styles.filterRow}>
-            {["All", ...categoryOrder].map((category) => (
-              <button
-                key={category}
-                type="button"
-                className={
-                  activeCategory === category
-                    ? `${styles.filterButton} ${styles.filterButtonActive}`
-                    : styles.filterButton
-                }
-                onClick={() => setActiveCategory(category)}
-              >
-                {category}
-              </button>
-            ))}
+      <article className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <div>
+            <h3>Filtered totals</h3>
+            <span>
+              {activeCategory === "All"
+                ? "All publishers combined"
+                : `${activeCategory} only`}
+            </span>
           </div>
+        </div>
 
-          {message ? <div className={styles.message}>{message}</div> : null}
+        <div className={styles.filterRow}>
+          {["All", ...categoryOrder].map((category) => (
+            <button
+              key={category}
+              type="button"
+              className={
+                activeCategory === category
+                  ? `${styles.filterButton} ${styles.filterButtonActive}`
+                  : styles.filterButton
+              }
+              onClick={() => setActiveCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
 
-          <div className={styles.categoryStack}>
-            {visibleSections.map((section) => (
-              <div key={section.category} className={styles.categorySection}>
-                <div className={styles.panelHeader}>
-                  <h3>{section.category}</h3>
-                  <span>{section.users.length} assigned publishers</span>
-                </div>
+        {message ? <div className={styles.message}>{message}</div> : null}
 
-                <div className={styles.listGrid}>
-                  {section.users.map((user) => (
-                    <article
-                      key={`${section.category}-${user.id}-${user.reportId || "none"}`}
-                      className={styles.publisherCard}
-                    >
-                      <strong>{user.name}</strong>
-                      <span>{user.groupName}</span>
-                    </article>
-                  ))}
-                  {section.users.length === 0 ? (
-                    <div className={styles.emptyState}>
-                      No publishers in this category yet.
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <aside className={styles.sideColumn}>
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h3>Overview notes</h3>
-            </div>
-            <p className={styles.sideNote}>
-              Use `Groups > View Groups` to pick a group, see everyone assigned to
-              it, and add or edit monthly reports with the month picker.
-            </p>
+        <div className={styles.filteredGrid}>
+          <article className={styles.metricCard}>
+            <span>
+              {activeCategory === "All" ? "Total Hours" : `${activeCategory} Hours`}
+            </span>
+            <strong>{filteredSummary.hours.toFixed(1)}</strong>
           </article>
-        </aside>
-      </div>
+
+          <article className={styles.metricCard}>
+            <span>
+              {activeCategory === "All"
+                ? "Total Bible Studies"
+                : `${activeCategory} Bible Studies`}
+            </span>
+            <strong>{filteredSummary.bibleStudies}</strong>
+          </article>
+        </div>
+      </article>
     </section>
   );
 }

@@ -53,6 +53,24 @@ function AppLayout() {
           </NavLink>
 
           <NavLink
+            to="/groups/assign"
+            className={({ isActive }) =>
+              isActive ? `${styles.link} ${styles.linkActive}` : styles.link
+            }
+          >
+            Assign Publishers
+          </NavLink>
+
+          <NavLink
+            to="/groups/reports"
+            className={({ isActive }) =>
+              isActive ? `${styles.link} ${styles.linkActive}` : styles.link
+            }
+          >
+            Add Report
+          </NavLink>
+
+          <NavLink
             to="/profile"
             className={({ isActive }) =>
               isActive ? `${styles.link} ${styles.linkActive}` : styles.link
